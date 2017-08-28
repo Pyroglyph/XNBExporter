@@ -1,13 +1,14 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using XNBLib;
 
 namespace XNBExporter
 {
     public static class Program
     {
-        private static Exporter exporter;
+        private static Exporter _exporter;
 
         private static void Main(string[] args)
         {
@@ -18,11 +19,11 @@ namespace XNBExporter
     \ \/ / '_ \| '_ \   / _ \ \/ / '_ \ / _ \| '__| __/ _ \ '__|
      >  <| | | | |_) | |  __/>  <| |_) | (_) | |  | ||  __/ |   
     /_/\_\_| |_|_.__/   \___/_/\_\ .__/ \___/|_|   \__\___|_|   
-                                 |_|                 Release 1.0
+                                 |_|                 Release 1.1
             ");
             Console.ForegroundColor = ConsoleColor.Gray;
 
-            WriteLine("Note: This version supports only supports audio and\nimages. More formats are planned for later versions.\n");
+            WriteLine("Note: This version supports only supports audio and\nimages. More formats are planned for later versions.\n\n");
 
             if (args.Length == 1)
             {
@@ -31,15 +32,36 @@ namespace XNBExporter
                 {
                     var allFiles = Directory.EnumerateFiles(args[0]).ToList();
                     var xnbFiles = allFiles.Where(f => f.Contains(".xnb")).ToArray();
-                    exporter = new Exporter(xnbFiles);
+                    _exporter = new Exporter(xnbFiles);
                 }
                 else
                 {
-                    exporter = new Exporter(args);
+                    _exporter = new Exporter(args);
                 }
 
-                exporter.OnStatusUpdate += Exporter_OnStatusUpdate;
-                exporter.Run();
+                RunExporter();
+            }
+            else if (args.Length == 2)
+            {
+                // If the destination directory doesn't exist, create it.
+                if (!Directory.Exists(args[1])) Directory.CreateDirectory(args[1]);
+                // Make sure the output directory has a \ at the end.
+                if (!args[1].EndsWith("\\") || !args[1].EndsWith("/")) args[1] += "\\";
+
+                // We need to determine whether the user has passed in singular file or a directory.
+                if (Directory.Exists(args[0]))
+                {
+                    // EnumerateFiles is not recursive, by the way.
+                    var allFiles = Directory.EnumerateFiles(args[0]).ToList();
+                    var xnbFiles = allFiles.Where(f => f.Contains(".xnb")).ToArray();
+                    _exporter = new Exporter(xnbFiles, args[1]);
+                }
+                else
+                {
+                    _exporter = new Exporter(new [] { args[0] }, args[1]);
+                }
+
+                RunExporter();
             }
             else
             {
@@ -52,13 +74,31 @@ namespace XNBExporter
                 WriteLine("\nDon't forget to use quotation marks in your path!\n");
                 WriteLine("\nPress any key to exit . . .");
                 Console.ReadKey();
-                Environment.Exit(1);
+                Environment.Exit(2);
             }
         }
 
+        private static void RunExporter()
+        {
+            _exporter.OnStatusUpdate += Exporter_OnStatusUpdate;
+            _exporter.OnCompleted += Exporter_OnCompleted;
+            _exporter.Run();
+        }
+
+        private static void Exporter_OnCompleted()
+        {
+            WriteLine("Exiting...");
+            // Please don't kill me, this is to give the user a chance to read the message.
+            Thread.Sleep(2000);
+            Environment.Exit(0);
+        }
+
+        private static string _previousLine = "";
         private static void Exporter_OnStatusUpdate(string status)
         {
+            if (!_previousLine.Contains("Success")) ClearLine();
             WriteLine(status);
+            _previousLine = status;
         }
 
         /// <summary>
