@@ -19,11 +19,11 @@ namespace XNBExporter
     \ \/ / '_ \| '_ \   / _ \ \/ / '_ \ / _ \| '__| __/ _ \ '__|
      >  <| | | | |_) | |  __/>  <| |_) | (_) | |  | ||  __/ |   
     /_/\_\_| |_|_.__/   \___/_/\_\ .__/ \___/|_|   \__\___|_|   
-                                 |_|                 Release 1.1
+                                 |_|                 Release 1.2
             ");
             Console.ForegroundColor = ConsoleColor.Gray;
 
-            WriteLine("Note: This version supports only supports audio and\nimages. More formats are planned for later versions.\n\n");
+            WriteLine("Note: This version supports audio, images, and\nsprite font textures. More formats are planned for\nlater versions.\n\n");
 
             if (args.Length == 1)
             {
@@ -96,7 +96,7 @@ namespace XNBExporter
         private static string _previousLine = "";
         private static void Exporter_OnStatusUpdate(string status)
         {
-            if (!_previousLine.Contains("Success")) ClearLine();
+            if (!_previousLine.StartsWith("[")) ClearLine();
             WriteLine(status);
             _previousLine = status;
         }
@@ -106,8 +106,12 @@ namespace XNBExporter
         /// </summary>
         public static void WriteLine(string s)
         {
+            var oldConsoleColor = Console.ForegroundColor;
+            if (s.Contains("SUCCESS")) Console.ForegroundColor = ConsoleColor.Green;
+            if (s.Contains("WARNING")) Console.ForegroundColor = ConsoleColor.Yellow;
             s = s.Replace("\n", "\n\t");
             Console.WriteLine("\t" + s);
+            Console.ForegroundColor = oldConsoleColor;
         }
 
         /// <summary>
